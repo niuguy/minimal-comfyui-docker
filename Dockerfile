@@ -1,10 +1,10 @@
-FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+FROM nvidia/cuda:12.8.1-devel-ubuntu22.04
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3.12 \
-    python3.12-venv \
-    python3.12-dev \
+    python3 \
+    python3-venv \
+    python3-dev \
     python3-pip \
     git \
     wget \
@@ -14,10 +14,6 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
-
-# Set up Python alternatives
-RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.12 1
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.12 1
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -31,13 +27,17 @@ RUN mkdir -p /workspace/logs
 # Install ComfyUI
 RUN git clone --branch ${COMFYUI_VERSION} https://github.com/comfyanonymous/ComfyUI.git /workspace/ComfyUI
 
-# Create virtual environment and install dependencies with version detection
+# Create virtual environment and install dependencies
 WORKDIR /workspace/ComfyUI
-RUN python -m venv venv
-
-# Copy and run requirements installation script
-COPY install_requirements.sh /tmp/install_requirements.sh
-RUN chmod +x /tmp/install_requirements.sh && /tmp/install_requirements.sh
+RUN python3 -m venv --system-site-packages venv && \
+    . venv/bin/activate && \
+    pip3 install --no-cache-dir --upgrade pip && \
+    pip3 install --no-cache-dir torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu128 && \
+    pip3 install --no-cache-dir xformers && \
+    pip3 install --no-cache-dir -r requirements.txt && \
+    pip3 install --no-cache-dir accelerate && \
+    pip3 install --no-cache-dir numpy==1.26.4 && \
+    pip3 cache purge
 
 # Copy configuration files
 COPY nginx.conf /etc/nginx/nginx.conf
