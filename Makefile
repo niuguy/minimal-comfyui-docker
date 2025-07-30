@@ -1,8 +1,8 @@
 # Minimal ComfyUI Docker Makefile
 
 # Configuration
-REGISTRY ?= docker.io
-REGISTRY_USER ?= your-username
+REGISTRY ?= ghcr.io
+REGISTRY_USER ?= niuguy
 APP ?= comfyui-minimal
 VERSION ?= v0.3.47
 

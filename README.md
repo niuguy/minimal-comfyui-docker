@@ -25,17 +25,15 @@ A streamlined, production-ready Docker image for ComfyUI with best practices and
 
 ### For RunPod
 
-1. **Build the image:**
-```bash
-git clone <your-repo>
-cd minimal-comfyui-docker
-docker buildx bake --push
-```
+**Ready-to-use image:**
+- Image: `ghcr.io/niuguy/minimal-comfyui-docker:latest`
+- Expose Port: `80`
+- Environment Variables: None required
 
-2. **Use in RunPod:**
-   - Image: `your-username/comfyui-minimal:latest`
-   - Expose Port: `80`
-   - Environment Variables: None required
+**Or build your own:**
+1. Fork this repository
+2. Push to trigger GitHub Actions build
+3. Use your image: `ghcr.io/niuguy/minimal-comfyui-docker:latest`
 
 ### For Local Development
 
@@ -44,7 +42,7 @@ docker run -d \
   --gpus all \
   --name comfyui \
   -p 8080:80 \
-  your-username/comfyui-minimal:latest
+  ghcr.io/niuguy/minimal-comfyui-docker:latest
 ```
 
 Access ComfyUI at: http://localhost:8080
