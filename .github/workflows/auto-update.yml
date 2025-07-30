@@ -1,0 +1,115 @@
+name: Auto-update ComfyUI Version
+
+on:
+  schedule:
+    # Check for updates daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Get latest ComfyUI version
+      id: latest_version
+      run: |
+        # Get latest release from ComfyUI repo
+        LATEST=$(curl -s https://api.github.com/repos/comfyanonymous/ComfyUI/releases/latest | jq -r .tag_name)
+        echo "latest_version=$LATEST" >> $GITHUB_OUTPUT
+        echo "Latest ComfyUI version: $LATEST"
+
+    - name: Get current version
+      id: current_version
+      run: |
+        CURRENT=$(grep 'COMFYUI_VERSION=v' Dockerfile | cut -d'=' -f2)
+        echo "current_version=$CURRENT" >> $GITHUB_OUTPUT
+        echo "Current version: $CURRENT"
+
+    - name: Check if update needed
+      id: check_update
+      run: |
+        if [ "${{ steps.latest_version.outputs.latest_version }}" != "${{ steps.current_version.outputs.current_version }}" ]; then
+          echo "update_needed=true" >> $GITHUB_OUTPUT
+          echo "Update needed: ${{ steps.current_version.outputs.current_version }} -> ${{ steps.latest_version.outputs.latest_version }}"
+        else
+          echo "update_needed=false" >> $GITHUB_OUTPUT
+          echo "No update needed"
+        fi
+
+    - name: Update files
+      if: steps.check_update.outputs.update_needed == 'true'
+      run: |
+        NEW_VERSION="${{ steps.latest_version.outputs.latest_version }}"
+        OLD_VERSION="${{ steps.current_version.outputs.current_version }}"
+        
+        # Update Dockerfile
+        sed -i "s/COMFYUI_VERSION=$OLD_VERSION/COMFYUI_VERSION=$NEW_VERSION/g" Dockerfile
+        
+        # Update docker-bake.hcl
+        sed -i "s/default = \"$OLD_VERSION\"/default = \"$NEW_VERSION\"/g" docker-bake.hcl
+        
+        # Update Makefile
+        sed -i "s/VERSION ?= $OLD_VERSION/VERSION ?= $NEW_VERSION/g" Makefile
+        
+        # Update README.md
+        sed -i "s/ComfyUI $OLD_VERSION/ComfyUI $NEW_VERSION/g" README.md
+        
+        # Update build-and-push.yml
+        sed -i "s/COMFYUI_VERSION=$OLD_VERSION/COMFYUI_VERSION=$NEW_VERSION/g" .github/workflows/build-and-push.yml
+
+    - name: Create Pull Request
+      if: steps.check_update.outputs.update_needed == 'true'
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update ComfyUI to ${{ steps.latest_version.outputs.latest_version }}"
+        title: "🤖 Auto-update ComfyUI to ${{ steps.latest_version.outputs.latest_version }}"
+        body: |
+          ## 🚀 Automated ComfyUI Update
+          
+          This PR automatically updates ComfyUI from `${{ steps.current_version.outputs.current_version }}` to `${{ steps.latest_version.outputs.latest_version }}`.
+          
+          ### Changes:
+          - ✅ Updated Dockerfile
+          - ✅ Updated docker-bake.hcl
+          - ✅ Updated Makefile
+          - ✅ Updated README.md
+          - ✅ Updated GitHub Actions workflow
+          
+          ### What's New in ComfyUI ${{ steps.latest_version.outputs.latest_version }}:
+          See [ComfyUI Release Notes](https://github.com/comfyanonymous/ComfyUI/releases/tag/${{ steps.latest_version.outputs.latest_version }})
+          
+          This PR will trigger a new build once merged.
+          
+          ---
+          *This PR was created automatically by the Auto-update workflow*
+        branch: auto-update-comfyui-${{ steps.latest_version.outputs.latest_version }}
+        delete-branch: true
+
+    - name: Auto-merge if patch version
+      if: steps.check_update.outputs.update_needed == 'true'
+      run: |
+        # Check if it's a patch version (e.g., v0.3.47 -> v0.3.48)
+        OLD_VERSION="${{ steps.current_version.outputs.current_version }}"
+        NEW_VERSION="${{ steps.latest_version.outputs.latest_version }}"
+        
+        # Extract major.minor versions
+        OLD_MAJOR_MINOR=$(echo $OLD_VERSION | cut -d'.' -f1-2)
+        NEW_MAJOR_MINOR=$(echo $NEW_VERSION | cut -d'.' -f1-2)
+        
+        if [ "$OLD_MAJOR_MINOR" = "$NEW_MAJOR_MINOR" ]; then
+          echo "Patch version update detected, will auto-merge"
+          echo "AUTO_MERGE=true" >> $GITHUB_ENV
+        else
+          echo "Major/minor version update, requires manual review"
+          echo "AUTO_MERGE=false" >> $GITHUB_ENV
+        fi

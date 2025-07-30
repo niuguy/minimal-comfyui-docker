@@ -15,8 +15,14 @@ A streamlined, production-ready Docker image for ComfyUI with best practices and
 - Minimal resource usage
 - Proper port configuration for RunPod templates
 
+✅ **Always Up-to-Date**
+- 🤖 Automatic ComfyUI version updates (daily checks)
+- 📦 Weekly builds with latest base images
+- 🔄 Auto-merge patch updates, manual review for major changes
+- 🏷️ Automatic releases and tags
+
 ✅ **Latest Components**
-- ComfyUI v0.3.47
+- ComfyUI v0.3.47 (auto-updated)
 - CUDA 12.4.1 support
 - Python 3.12
 - Latest PyTorch and xformers

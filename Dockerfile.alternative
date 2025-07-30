@@ -1,3 +1,4 @@
+# Alternative Dockerfile with automatic version detection
 FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
 
 # Install system dependencies
@@ -35,7 +36,7 @@ RUN git clone --branch ${COMFYUI_VERSION} https://github.com/comfyanonymous/Comf
 WORKDIR /workspace/ComfyUI
 RUN python -m venv venv
 
-# Copy and run requirements installation script
+# Copy requirements installation script
 COPY install_requirements.sh /tmp/install_requirements.sh
 RUN chmod +x /tmp/install_requirements.sh && /tmp/install_requirements.sh
 
